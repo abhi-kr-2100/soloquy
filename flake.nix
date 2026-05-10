@@ -11,7 +11,10 @@
       in
       {
         devShells.default = pkgs.mkShell {
-          packages = with pkgs; [];
+          packages = with pkgs; [
+            nodejs_24
+            pnpm_10
+          ];
         };
       });
 }
