@@ -1,1 +1,7 @@
 .direnv
+.env
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
