@@ -1,3 +1,7 @@
+import "server-only";
+
+import { fetchWithAuth } from "./http-client";
+
 export async function fetchHello(): Promise<string> {
   const apiUrl = process.env.API_URL;
 
@@ -7,7 +11,7 @@ export async function fetchHello(): Promise<string> {
   }
 
   try {
-    const res = await fetch(`${apiUrl}/hello`, { cache: "no-store" });
+    const res = await fetchWithAuth(`${apiUrl}/hello`, { cache: "no-store" });
 
     if (!res.ok) {
       throw new Error(`Backend returned status: ${res.status}.`);
