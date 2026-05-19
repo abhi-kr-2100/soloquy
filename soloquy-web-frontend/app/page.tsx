@@ -1,9 +1,13 @@
-import Image from "next/image";
+import { fetchHello } from "@/lib/api";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const message = await fetchHello();
+
   return (
     <main>
-      <h1>Hello, world!</h1>
+      {message}
     </main>
   );
 }
