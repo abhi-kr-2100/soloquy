@@ -4,7 +4,8 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Commit Guidelines
 
-* Use `jj diff --git --no-pager` to see uncommitted changes.
+* Only commit when explicitly asked to.
+* Use `jj status --no-pager` and `jj diff --git --no-pager` to see uncommitted changes.
 * Use `jj desc -m {commit_message}` to commit changes.
 * Follow the Conventional Commits format:
   - **Header**: `type(scope): description`
