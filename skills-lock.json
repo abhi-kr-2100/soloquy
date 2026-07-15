@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "jj-commit": {
+      "source": "abhi-kr-2100/skills",
+      "sourceType": "github",
+      "skillPath": "skills/jj-commit/SKILL.md",
+      "computedHash": "f9baf286187f0204b1b6638c5235308a837532a242b59ef020b3b3cbd2deabc2"
+    }
+  }
+}
