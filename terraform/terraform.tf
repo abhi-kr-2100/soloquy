@@ -7,4 +7,13 @@ terraform {
       version = "~> 5.2"
     }
   }
+
+  cloud {
+    organization = "soloquy"
+
+    workspaces {
+      project = "soloquy"
+      name = "soloquy"
+    }
+  }
 }
