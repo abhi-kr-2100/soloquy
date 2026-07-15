@@ -1,12 +1,3 @@
-terraform {
-  required_providers {
-    vercel = {
-      source = "vercel/vercel"
-      version = "~> 5.2"
-    }
-  }
-}
-
 resource "vercel_project" "soloquy_web_frontend" {
   name      = "soloquy-web-frontend"
   framework = "nextjs"
