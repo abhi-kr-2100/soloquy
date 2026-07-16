@@ -1,4 +1,66 @@
 {
+  "com.github.openjson:openjson:1.0.13": {
+    "openjson-1.0.13.jar": {
+      "url": "https://repo.maven.apache.org/maven2/com/github/openjson/openjson/1.0.13/openjson-1.0.13.jar",
+      "hash": "sha256-fUGEz4kfNZ7nIJWkzhy5zY88Z2Z23+cW6on6tNDm6VM="
+    },
+    "openjson-1.0.13.pom": {
+      "url": "https://repo.maven.apache.org/maven2/com/github/openjson/openjson/1.0.13/openjson-1.0.13.pom",
+      "hash": "sha256-bH6VO09at9+Uppnum6jk7NneKghLcombV2R6I3WJhqg="
+    }
+  },
+  "org.graalvm.buildtools.native:org.graalvm.buildtools.native.gradle.plugin:1.1.4": {
+    "org.graalvm.buildtools.native.gradle.plugin-1.1.4.pom": {
+      "url": "https://plugins.gradle.org/m2/org/graalvm/buildtools/native/org.graalvm.buildtools.native.gradle.plugin/1.1.4/org.graalvm.buildtools.native.gradle.plugin-1.1.4.pom",
+      "hash": "sha256-t+b6IIdqZaR/CkU4dt+4Y3SQm3M++ryIqdh/1wL9VcY="
+    }
+  },
+  "org.graalvm.buildtools:native-gradle-plugin:1.1.4": {
+    "native-gradle-plugin-1.1.4.jar": {
+      "url": "https://repo.maven.apache.org/maven2/org/graalvm/buildtools/native-gradle-plugin/1.1.4/native-gradle-plugin-1.1.4.jar",
+      "hash": "sha256-KahlTAhJJSmPoZmli+g5NXitajz/QSwM7Raii6cfSK4="
+    },
+    "native-gradle-plugin-1.1.4.module": {
+      "url": "https://repo.maven.apache.org/maven2/org/graalvm/buildtools/native-gradle-plugin/1.1.4/native-gradle-plugin-1.1.4.module",
+      "hash": "sha256-4I887jCwORt5609RZp0PnHvhxrxd5btp52XmFkFPCaw="
+    },
+    "native-gradle-plugin-1.1.4.pom": {
+      "url": "https://repo.maven.apache.org/maven2/org/graalvm/buildtools/native-gradle-plugin/1.1.4/native-gradle-plugin-1.1.4.pom",
+      "hash": "sha256-+xTOUZ1sEzVn/f3wQRxVmxxDSq8QUeMqDETSSi2Ax1o="
+    }
+  },
+  "org.graalvm.buildtools:graalvm-reachability-metadata:1.1.4": {
+    "graalvm-reachability-metadata-1.1.4.jar": {
+      "url": "https://repo.maven.apache.org/maven2/org/graalvm/buildtools/graalvm-reachability-metadata/1.1.4/graalvm-reachability-metadata-1.1.4.jar",
+      "hash": "sha256-XpBnpBN2KBw1S0rKAeQca/LdXinwnNHRoxn7Bd/Lz7M="
+    },
+    "graalvm-reachability-metadata-1.1.4.module": {
+      "url": "https://repo.maven.apache.org/maven2/org/graalvm/buildtools/graalvm-reachability-metadata/1.1.4/graalvm-reachability-metadata-1.1.4.module",
+      "hash": "sha256-XJS9cV2yYZwZN7I7Z6LvX0yaP5+0HNyWaFuB0vkbEp4="
+    },
+    "graalvm-reachability-metadata-1.1.4.pom": {
+      "url": "https://repo.maven.apache.org/maven2/org/graalvm/buildtools/graalvm-reachability-metadata/1.1.4/graalvm-reachability-metadata-1.1.4.pom",
+      "hash": "sha256-QQggaIBXhhCBLsrE9gAPdGSI+fDM/DS6+F5koXR5aG4="
+    },
+    "graalvm-reachability-metadata-1.1.4-repository.zip": {
+      "url": "https://repo.maven.apache.org/maven2/org/graalvm/buildtools/graalvm-reachability-metadata/1.1.4/graalvm-reachability-metadata-1.1.4-repository.zip",
+      "hash": "sha256-ag2UtZLv0G7acwSQQ2MiMx6FWMaYvxZBU/8MLOYzP0U="
+    }
+  },
+  "org.graalvm.buildtools:utils:1.1.4": {
+    "utils-1.1.4.jar": {
+      "url": "https://repo.maven.apache.org/maven2/org/graalvm/buildtools/utils/1.1.4/utils-1.1.4.jar",
+      "hash": "sha256-pCd1lX+eRCSKmUOEHbHl5OYr7Qx4Yg6Tvl3UPMlVrdg="
+    },
+    "utils-1.1.4.module": {
+      "url": "https://repo.maven.apache.org/maven2/org/graalvm/buildtools/utils/1.1.4/utils-1.1.4.module",
+      "hash": "sha256-MYABUNF78ObERX4EXTamANDzHh0BRkRegpw9xWzPTOU="
+    },
+    "utils-1.1.4.pom": {
+      "url": "https://repo.maven.apache.org/maven2/org/graalvm/buildtools/utils/1.1.4/utils-1.1.4.pom",
+      "hash": "sha256-rt82QOjPhUY4hHVMuUWjzc4J8I2P8sujpdUs9z/ijSY="
+    }
+  },
   "biz.aQute.bnd:biz.aQute.bnd.annotation:7.1.0": {
     "biz.aQute.bnd.annotation-7.1.0.jar": {
       "url": "https://repo.maven.apache.org/maven2/biz/aQute/bnd/biz.aQute.bnd.annotation/7.1.0/biz.aQute.bnd.annotation-7.1.0.jar",

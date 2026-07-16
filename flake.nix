@@ -19,28 +19,34 @@
           config.allowUnfree = true;
         };
 
-        jdk = pkgs.jdk25;
+        graalvm = pkgs.graalvmPackages.graalvm-oracle_25 // {
+          # gradle2nix expects a .home attribute on the JDK
+          home = graalvm;
+        };
 
         gradleWithJdk = pkgs.gradle_9.override {
-          java = jdk;
-          javaToolchains = [ jdk ];
+          java = graalvm;
+          javaToolchains = [ graalvm ];
         };
 
         backendName = "soloquybackend";
         backendVersion = "0.0.1-SNAPSHOT";
 
-        backendJar = gradle2nix.builders.${system}.buildGradlePackage {
+        backendNative = gradle2nix.builders.${system}.buildGradlePackage {
           pname = backendName;
           version = backendVersion;
           src = ./soloquybackend;
           lockFile = ./soloquybackend/gradle.lock;
           gradle = gradleWithJdk;
-          buildJdk = jdk;
-          nativeBuildInputs = [ jdk ];
-          gradleBuildFlags = [ "--no-daemon" "build" "-x" "test" ];
+          buildJdk = graalvm;
+          GRAALVM_HOME = graalvm;
+          nativeBuildInputs = with pkgs; [
+            graalvm
+          ];
+          gradleBuildFlags = [ "--no-daemon" "nativeCompile" ];
           installPhase = ''
-            mkdir -p $out/lib
-            cp build/libs/${backendName}-${backendVersion}.jar $out/lib/
+            mkdir -p $out/bin
+            cp build/native/nativeCompile/${backendName} $out/bin/
           '';
         };
 
@@ -51,8 +57,8 @@
 
           copyToRoot = pkgs.buildEnv {
             name = "image-root";
-            paths = [ jdk backendJar ];
-            pathsToLink = [ "/bin" "/lib" ];
+            paths = [ backendNative ];
+            pathsToLink = [ "/bin" ];
           };
 
           extraCommands = ''
@@ -60,19 +66,22 @@
           '';
 
           config = {
-            Cmd = [ "/bin/java" "-jar" "/lib/${backendName}-${backendVersion}.jar" ];
+            Cmd = [ "/bin/${backendName}" ];
             ExposedPorts = { "8080/tcp" = {}; };
           };
         };
       in
       {
         devShells.default = pkgs.mkShell {
+          shellHook = ''
+            export GRAALVM_HOME=${graalvm}
+          '';
           packages = (with pkgs; [
             docker
             nodejs_24
             pnpm_10
             terraform
-          ]) ++ [ jdk ];
+          ]) ++ [ graalvm ];
         };
 
         packages.backend = backend;
