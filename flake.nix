@@ -79,6 +79,7 @@
           packages = (with pkgs; [
             docker
             nodejs_24
+            oci-cli
             pnpm_10
             terraform
           ]) ++ [ graalvm ];
