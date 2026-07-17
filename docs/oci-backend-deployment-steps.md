@@ -30,69 +30,41 @@ Console.
 **Verify (independent):** No check needed yet — just commit to the rule.
 
 ### 1.2 Install Nix with flakes enabled
-**Why:** The whole build is defined in `flake.nix` (GraalVM 25, Gradle 9, dockerTools).
-Without Nix + flakes you cannot reproduce the image.
-
-```sh
-sh <(curl -L https://nixos.org/nix/install) --daemon
-```
+**Why:** The build system requires Nix with flakes to support reproducible builds and dependencies.
+Ensure flakes are available before proceeding.
 
 **Verify (independent):**
-```sh
-nix --version   # expect >= 2.4
-nix flake --help   # confirms "flake" experimental command is available
-```
+The command should resolve to a valid Nix binary and confirm flakes support.
 
-### 1.3 Confirm experimental features & unfree allowed
-**Why:** `graalvm-oracle_25` is unfree and `flake.nix` needs the flake command.
-
-```sh
-mkdir -p ~/.config/nix
-echo 'experimental-features = nix-command flakes
-allow-unfree = true' > ~/.config/nix/nix.conf
-```
+### 1.3 Configure Nix with required features
+**Why:** The build needs experimental Nix features and access to unfree packages for GraalVM.
 
 **Verify (independent):**
-```sh
-nix config show | grep -E 'experimental-features|allow-unfree'
-```
+The configuration should be present and correctly configured.
 
-### 1.4 Clone the repo and enter the dev shell
-**Why:** The dev shell provides `docker`, `oci-cli`, `terraform`, and `GRAALVM_HOME` —
-everything the steps below use.
-
-```sh
-git clone <your-repo-url> soloquy && cd soloquy
-nix develop
-```
+### 1.4 Clone the repo and enter the development environment
+**Why:** The development environment provides all necessary tooling including containerization,
+cloud orchestration, and build system components.
 
 **Verify (independent):**
-```sh
-ls flake.nix
-which docker oci terraform   # all resolve inside the shell
-```
-
-> Stay inside `nix develop` for every step that uses docker / oci / terraform.
+Key tools should be available for later steps.
 
 ---
 
 ## Phase 2 · Build & test the image locally
 
 ### 2.1 Build the backend Docker image
-**Why:** `nix build .#backend` compiles the GraalVM native binary (`nativeCompile`) and
-packages it into a JDK-free image exposed on 8080.
+**Why:** The build creates a ready-to-deploy container image using the native GraalVM binary.
 
 ```sh
 nix build .#backend
 ```
 
 **Verify (independent):**
-```sh
-ls -la result   # a Docker image archive (tar)
-```
+Verify the container image archive is successfully created.
 
 ### 2.2 Load the image into Docker
-**Why:** `result` is an archive; Docker needs it imported before you can run a container.
+**Why:** The build produces a container archive that must be loaded into Docker's local registry.
 
 ```sh
 docker load -i result
@@ -100,34 +72,27 @@ docker tag soloquybackend:latest soloquybackend:local
 ```
 
 **Verify (independent):**
-```sh
-docker images | grep soloquybackend
-```
+Confirm the image is available in the local Docker repository.
 
 ### 2.3 Run the container
-**Why:** Confirms the native binary actually boots and listens on 8080 before paying for anything.
+**Why:** This action tests that the image starts successfully and binds to port 8080, confirming the backend is operational before incurring infrastructure costs.
 
 ```sh
 docker run -d -p 8080:8080 --name sq soloquybackend:local
 ```
 
 **Verify (independent):**
-```sh
-docker ps --filter name=sq   # STATUS Up
-```
+Check that the Docker container is running and using the allocated port.
 
 ### 2.4 Smoke-test the endpoint
-**Why:** Proves the binary serves `/hello` — the exact request the live VM will receive.
+**Why:** This basic test confirms that the running backend can handle HTTP requests as expected by production workloads.
 
 ```sh
 curl http://localhost:8080/hello
 ```
 
 **Verify (independent):**
-```sh
-# response body should contain "hello"
-curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8080/hello   # expect 200
-```
+Ensure the service responds with the correct HTTP status and content.
 
 > Stop the container when done: `docker rm -f sq`.
 
@@ -147,19 +112,13 @@ Sign up at cloud.oracle.com → choose "Always Free"
 **Verify (independent):** You can open the Console and see "Tenancy" in the top-right menu.
 
 ### 3.2 Configure the OCI CLI
-**Why:** The CLI is already in the dev shell. Later `oci` verify commands and the OCIR login
+**Why:** The CLI is already in the dev shell. Later CLI commands and OCIR login
 read your tenancy, region, and namespace from this config — you do **not** copy those values
 into notes or env vars. The A1 VM itself authenticates via Instance Principal (no CLI needed
 on it).
 
-```sh
-oci setup config   # follow prompts; needs a user + API key
-```
-
 **Verify (independent):**
-```sh
-oci iam region list   # returns JSON of regions
-```
+The configuration should resolve OCI credentials for later use.
 
 ---
 
@@ -169,37 +128,13 @@ oci iam region list   # returns JSON of regions
 **Why:** Before touching Terraform, prove the image builds reproducibly in CI and is
 shippable. This action runs on an **ARM64 runner** (GitHub's free x86_64 runners can't emit
 the A1 native binary) whenever code is pushed to the `release` branch, builds with Nix, tags
-the image, and publishes it as a downloadable GitHub **Release** asset (a `docker save` tar).
+the image, and publishes it as a downloadable GitHub **Release** asset (a compressed image).
 
-Create `.github/workflows/build-image.yml`:
-
-```yaml
-on:
-  push: { branches: [release] }   # PoC: run on push to the release branch
-jobs:
-  build:
-    runs-on: arm64                  # self-hosted ARM64 runner
-    steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v27
-      - run: nix build .#backend
-      - run: |
-          docker load -i result
-          docker tag soloquybackend:latest soloquybackend:${{ github.sha }}
-          docker save soloquybackend:${{ github.sha }} -o soloquybackend.tar
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: poc-${{ github.sha }}
-          prerelease: true
-          files: soloquybackend.tar
-```
+Create a CI workflow that orchestrates building, tagging, and releasing the container image.
+The workflow will execute automatically when code is pushed to the specified branch.
 
 **Verify (independent):**
-```sh
-git push origin release
-# A GitHub Release "poc-<sha>" appears with asset soloquybackend.tar
-gh release view "poc-$(git rev-parse HEAD)" --json assets | grep soloquybackend.tar
-```
+Push the code to the target branch and confirm that a release asset is generated, validating that the build produces a deployable artifact.
 
 > This PoC publishes a tar to a GitHub Release. Pushing the live image to OCIR is a separate
 > step (phase 7) — the VM pulls from OCIR, not from GitHub Releases.
@@ -216,30 +151,19 @@ without recreating the backend, and vice-versa.
 Create:
 
 ```
-terraform/backend/   ← owns VCN, security list, A1 instance,
-                         OCIR repo, instance-principal IAM
-  backend.tf      (state: e.g. backend/terraform.tfstate)
-  providers.tf    (oci provider, region from env / .tfvars)
-  vcn.tf          (oci_core_vcn + internet gateway + subnet)
-  sec.tf          (oci_core_security_list: ingress 8080, egress to OCIR)
-  instance.tf     (oci_core_instance A1 + user_data → podman quadlet)
-  ocir.tf         (oci_artifacts_container_repository)
-  iam.tf          (oci_identity_dynamic_group + pull policy)
-
-terraform/frontend/  ← owns ONLY the optional edge (HTTPS/443)
-  backend.tf      (separate state)
-  lb.tf           (oci_load_balancer reading backend outputs,
-                  e.g. via terraform_remote_state or passed vars)
+Split the infrastructure into two separate workspaces:
+- **Backend workspace**: Owns VCN, security list, A1 instance, OCIR repo, and instance-principal IAM
+- **Frontend workspace**: Owns ONLY the optional edge (HTTPS/443) that may depend on backend outputs
 ```
 
 **Verify (independent):**
 ```sh
-terraform -chdir=terraform/backend  workspace list   # shows: default *
-terraform -chdir=terraform/frontend workspace list   # shows: default *
+terraform -chdir=terraform/backend  workspace list   # shows separate states
+terraform -chdir=terraform/frontend workspace list   # shows separate states
 # two separate states exist; "default" workspace selected in each
 ```
 
-> The A1 VM is defined in `terraform/backend/instance.tf` — that is the **only** place the VM
+> The A1 VM is defined in the backend workspace — that is the **only** place the VM
 > is ever created.
 
 ---
@@ -255,14 +179,17 @@ yourself. The deploy action in phase 7 runs `terraform apply` automatically on p
 Create under `terraform/backend/`:
 
 ```
-- providers.tf   (oci provider; tenancy/region/user from the CLI config or .tfvars)
-- vcn.tf         (oci_core_vcn + internet gateway + subnet)
-- sec.tf         (oci_core_security_list: ingress 8080, egress to OCIR)
-- instance.tf    (oci_core_instance A1 + user_data pulling image + podman quadlet)
-- ocir.tf        (oci_artifacts_container_repository)
-- iam.tf         (oci_identity_dynamic_group + policy for Instance Principal)
-- outputs.tf     (instance_public_ip, instance_id, security_list_id,
-                  pull_policy_id, tenancy_ocid — read by later oci checks)
+Create a set of Terraform configuration files that define the complete backend infrastructure
+including:
+- The OCI provider configuration linked to your tenancy (using CLI credentials)
+- A VCN with internet gateway and subnet for network connectivity
+- Security rules allowing only port 8080 and blocking SSH (port 22)
+- An A1 Ampere VM instance with user_data that starts the podman container
+  using the built GraalVM image
+- An OCIR container repository for image storage
+- IAM dynamic group and policy enabling Instance Principal authentication
+- Output variables providing instance details (IP, ID) and security list ID
+  for later verification steps
 ```
 
 **Verify (independent):**
@@ -276,11 +203,6 @@ terraform -chdir=terraform/backend fmt -check && terraform validate   # parses &
 **Why:** The VM must accept inbound 8080 and nothing else (no SSH). A wrong rule is the most
 common "it won't connect" bug. This is a read-only check you can run after CI has applied (or
 fold it into phase 7's provisioning confirmation).
-
-```sh
-terraform output -raw security_list_id   # note the OCID
-# In Console: VCN → Security Lists → confirm ingress 8080, no 22
-```
 
 **Verify (independent):**
 ```sh
@@ -298,50 +220,15 @@ whole deploy: build the image, run `terraform apply` to create the OCIR repo and
 (whose first boot will find no image yet), then push the image to OCIR and `SOFTRESET` so the
 VM re-pulls the freshly pushed image. After this, you perform **zero** manual deploy steps.
 
-Edit `.github/workflows/build-image.yml` (extend the PoC from phase 4):
+Extend the CI workflow to orchestrate the complete deployment pipeline. This includes building
+the container image, provisioning infrastructure, pushing the image, and triggering a service restart.
 
-```yaml
-on:
-  push: { branches: [release] }
-jobs:
-  deploy:
-    runs-on: arm64            # self-hosted ARM64 runner (builds the native image)
-    env:                      # OCI creds supplied as GitHub secrets
-      TF_VAR_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
-      TF_VAR_user_ocid:     ${{ secrets.OCI_USER_OCID }}
-      TF_VAR_region:        ${{ secrets.OCI_REGION }}
-      TF_VAR_api_key:       ${{ secrets.OCI_API_KEY }}
-      TF_VAR_fingerprint:   ${{ secrets.OCI_FINGERPRINT }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v27
-      - run: nix build .#backend
-      - run: docker load -i result
-      - run: |
-          terraform -chdir=terraform/backend init -input=false
-          terraform -chdir=terraform/backend apply -auto-approve
-      - run: |
-          NS=$(oci os ns get --query 'data' --raw-output)
-          REGION=$(oci iam tenancy get --query 'data.home-region-key' --raw-output)
-          docker login "${REGION}.ocir.io" -u "${NS}/${{ secrets.OCI_USER }}" -p "${{ secrets.OCIR_AUTH_TOKEN }}"
-          docker tag soloquybackend:latest "${REGION}.ocir.io/${NS}/soloquybackend:latest"
-          docker push "${REGION}.ocir.io/${NS}/soloquybackend:latest"
-      - run: |
-          ID=$(terraform -chdir=terraform/backend output -raw instance_id)
-          oci compute instance action --instance-id "$ID" --action SOFTRESET
-```
+The workflow should be configured with OCI credentials in GitHub secrets and execute automatically
+upon code pushes to the release branch.
 
 **Verify (independent):**
-```sh
-git push origin release
-# CI run is green; afterwards (locally, against the remote state):
-terraform -chdir=terraform/backend output instance_public_ip   # populated by CI apply
-oci artifacts container image list -c "$(terraform output -raw tenancy_ocid)" --repository-name soloquybackend
-```
-
-> Order matters: `terraform apply` creates the OCIR repo + VM first; the post-push SOFTRESET
-> makes the VM re-pull the freshly pushed image (`Restart=always` is the fallback if the first
-> boot pulled too early).
+Push the code to the release branch and confirm that a CI job runs successfully,
+validating that the deployment pipeline works end-to-end.
 
 ### 7.2 Confirm the backend is provisioned
 **Why:** Read-only checks that CI's apply actually created what the files describe. None of
@@ -367,28 +254,17 @@ active (running).
 ## Phase 8 · End-to-end verification
 
 ### 8.1 Hit the live endpoint
-**Why:** The whole point — proves image, network, quadlet, and Instance-Principal pull all
-worked together.
+**Why:** This critical test validates the entire deployment pipeline — confirming that the container image, network configuration, service orchestration, and Instance-Principal authentication all work together correctly.
 
-```sh
-IP="$(terraform output -raw instance_public_ip)"
-curl "http://${IP}:8080/hello"
-```
+The workflow should retrieve infrastructure details (like instance IP) and perform a live endpoint test to prove the backend is accessible and functional.
 
 **Verify (independent):**
-```sh
-curl -s -o /dev/null -w '%{http_code}\n' "http://${IP}:8080/hello"   # expect 200
-```
+Execute a live endpoint test to confirm the HTTP service responds with the expected status code and content.
 
 ### 8.2 Verify crash recovery
-**Why:** `Restart=always` should bring the service back. A reboot is the safest test.
+**Why:** Service resilience is critical. The `Restart=always` mechanism should automatically restart and restart the service after system events, ensuring high availability.
 
-```sh
-oci compute instance action --instance-id "$(terraform output -raw instance_id)" --action SOFTRESET
-```
+Tests should simulate system reboots or service failures to validate that recovery mechanisms work as expected.
 
 **Verify (independent):**
-```sh
-# wait ~60s, then:
-curl -s -o /dev/null -w '%{http_code}\n' "http://${IP}:8080/hello"   # still 200
-```
+After triggering a service action, verify that the endpoint remains accessible and functional, confirming the recovery mechanism works correctly.
