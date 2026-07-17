@@ -98,7 +98,7 @@ Ensure the service responds with the correct HTTP status and content.
 
 ---
 
-## Phase 3 · OCI account & CLI setup
+## Phase 3 · OCI account, API key & CLI setup
 
 ### 3.1 Create an OCI account (Always Free)
 **Why:** The A1 VM and OCIR live in a tenancy. The Always-Free tier includes Ampere A1
@@ -111,14 +111,31 @@ Sign up at cloud.oracle.com → choose "Always Free"
 
 **Verify (independent):** You can open the Console and see "Tenancy" in the top-right menu.
 
-### 3.2 Configure the OCI CLI
-**Why:** The CLI is already in the dev shell. Later CLI commands and OCIR login
-read your tenancy, region, and namespace from this config — you do **not** copy those values
-into notes or env vars. The A1 VM itself authenticates via Instance Principal (no CLI needed
-on it).
+### 3.2 Create an API key and configure HCP Terraform variables
+**Why:** Terraform runs remotely on HCP Terraform (triggered by GitHub Actions). It
+authenticates to OCI via an API key — not via the OCI CLI and not via `~/.oci/config`.
+Create an API key for your user in the OCI Console, then set these as workspace variables
+in the `soloquy-backend` HCP Terraform workspace (mark `private_key` as sensitive):
+
+- `tenancy_ocid`
+- `user_ocid`
+- `fingerprint`
+- `private_key` (full PEM, with real newlines)
+- `region` (e.g. `ap-mumbai-1`)
+
+The A1 VM itself authenticates via Instance Principal at boot (no API key or CLI on the VM).
 
 **Verify (independent):**
-The configuration should resolve OCI credentials for later use.
+All five variables are present in the HCP workspace and a speculative plan succeeds.
+
+### 3.3 Configure the OCI CLI (local verification only)
+**Why:** The CLI is already in the dev shell. Post-deploy verification commands in later
+phases (`oci network security-list get`, `oci compute instance list`, etc.) read from
+`~/.oci/config` on your machine. This is separate from Terraform auth, which uses the HCP
+workspace variables above.
+
+**Verify (independent):**
+`oci iam region get` succeeds using your local config.
 
 ---
 
@@ -181,7 +198,7 @@ Create under `terraform/backend/`:
 ```
 Create a set of Terraform configuration files that define the complete backend infrastructure
 including:
-- The OCI provider configuration linked to your tenancy (using CLI credentials)
+- The OCI provider configuration linked to your tenancy (using API key credentials from HCP workspace variables)
 - A VCN with internet gateway and subnet for network connectivity
 - Security rules allowing only port 8080 and blocking SSH (port 22)
 - An A1 Ampere VM instance with user_data that starts the podman container

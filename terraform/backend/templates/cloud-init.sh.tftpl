@@ -1,0 +1,41 @@
+#!/bin/bash
+set -euo pipefail
+
+# ── Install podman ──
+dnf install -y podman
+
+# ── Login to OCIR using Instance Principal ──
+# The instance metadata service provides the auth token
+podman login ${ocir_host} \
+  --username "${ocir_namespace}/oracleidentitycloudservice/instance.principal" \
+  --password "$(curl -sH 'Authorization: Bearer Oracle' \
+    'http://169.254.169.254/opc/v2/identity/token' | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')"
+
+# ── Pull the container image ──
+podman pull ${ocir_image}
+
+# ── Create a systemd Quadlet unit ──
+mkdir -p /etc/containers/systemd
+
+cat > /etc/containers/systemd/soloquybackend.container <<'UNIT'
+[Unit]
+Description=Soloquy Backend
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=${ocir_image}
+PublishPort=8080:8080
+AutoUpdate=registry
+
+[Service]
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+# ── Reload systemd and start the service ──
+systemctl daemon-reload
+systemctl enable --now soloquybackend.service
