@@ -1,0 +1,20 @@
+on:
+  push: { branches: [release] }
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@v31
+      - run: nix build .#backend
+      - run: |
+          docker load -i result
+          docker tag soloquybackend:latest soloquybackend:${{ github.sha }}
+          docker save soloquybackend:${{ github.sha }} -o soloquybackend.tar
+      - uses: softprops/action-gh-release@v3
+        with:
+          tag_name: poc-${{ github.sha }}
+          prerelease: true
+          files: soloquybackend.tar
