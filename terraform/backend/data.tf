@@ -24,4 +24,9 @@ data "oci_core_images" "ol9" {
 
 locals {
   ol9_x86_64_image_ocid = data.oci_core_images.ol9.images[0].id
+
+  # OCIR registry host, in the region-identifier form used by the deploy
+  # workflow's push/login. Must match the credHelpers key and the VM pull
+  # exactly per docs/oci-backend-deployment-steps.md §1.4.
+  ocir_registry_host = "ocir.${var.region}.oci.oraclecloud.com"
 }

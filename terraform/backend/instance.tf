@@ -14,6 +14,12 @@ module "soloquy_backend_instance" {
   assign_public_ip       = false
   public_ip              = "RESERVED"
   public_ip_display_name = "soloquy-backend-public-ip"
+
+  user_data = base64encode(templatefile("${path.module}/cloud-init/backend.yaml.tftpl", {
+    registry_host = local.ocir_registry_host
+    oci_namespace = data.oci_objectstorage_namespace.this.namespace
+    image_tag     = var.image_tag
+  }))
 }
 
 output "instance_id" {
