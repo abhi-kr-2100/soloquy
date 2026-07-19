@@ -34,9 +34,7 @@ jobs:
         env:
           OCIR_AUTH_TOKEN: ${{ secrets.OCIR_AUTH_TOKEN }}
           OCIR_USERNAME: ${{ secrets.OCIR_USERNAME }}
-        run: printenv OCIR_AUTH_TOKEN | docker login ${{ env.OCIR_REGISTRY }} \
-          --username "$OCIR_USERNAME" \
-          --password-stdin
+        run: printenv OCIR_AUTH_TOKEN | docker login ${{ env.OCIR_REGISTRY }} --username "$OCIR_USERNAME" --password-stdin
 
       - name: Push image
         env:
