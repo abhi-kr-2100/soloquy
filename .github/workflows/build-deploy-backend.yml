@@ -1,0 +1,72 @@
+on:
+  push: { branches: [release] }
+
+env:
+  OCIR_REGISTRY: ocir.ap-hyderabad-1.oci.oraclecloud.com
+  OCIR_REPO: soloquybackend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment: Production
+    steps:
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v17
+        with:
+          name: soloquy
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build image
+        run: nix build .#backend
+
+      - name: Load image
+        run: docker load -i result
+
+      - name: Tag image
+        env:
+          OCIR_NAMESPACE: ${{ secrets.OCIR_NAMESPACE }}
+          IMAGE_TAG: ${{ env.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/${{ env.OCIR_REPO }}:${{ github.sha }}
+        run: |
+          docker tag soloquybackend:latest $IMAGE_TAG
+
+      - name: Log in to OCIR
+        env:
+          OCIR_AUTH_TOKEN: ${{ secrets.OCIR_AUTH_TOKEN }}
+          OCIR_USERNAME: ${{ secrets.OCIR_USERNAME }}
+        run: printenv OCIR_AUTH_TOKEN | docker login ${{ env.OCIR_REGISTRY }} \
+          --username "$OCIR_USERNAME" \
+          --password-stdin
+
+      - name: Push image
+        env:
+          IMAGE_TAG: ${{ env.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/${{ env.OCIR_REPO }}:${{ github.sha }}
+        run: |
+          docker push "$IMAGE_TAG"
+
+      - name: Upload Terraform configuration
+        id: upload-config
+        uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1
+        with:
+          workspace: soloquy-backend
+          directory: terraform/backend
+        env:
+          TF_API_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
+
+      - name: Create Terraform run
+        id: create-run
+        uses: hashicorp/tfc-workflows-github/actions/create-run@v1
+        with:
+          workspace: soloquy-backend
+          configuration_version: ${{ steps.upload-config.outputs.configuration_version_id }}
+          variables: |
+            image_tag=${{ github.sha }}
+        env:
+          TF_API_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
+
+      - name: Apply Terraform run
+        uses: hashicorp/tfc-workflows-github/actions/apply-run@v1
+        with:
+          run: ${{ steps.create-run.outputs.run_id }}
+        env:
+          TF_API_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
