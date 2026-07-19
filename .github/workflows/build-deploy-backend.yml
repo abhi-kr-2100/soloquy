@@ -46,6 +46,7 @@ jobs:
         id: upload-config
         uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.3.2
         with:
+          organization: soloquy
           workspace: soloquy-backend
           directory: terraform/backend
         env:
