@@ -59,10 +59,9 @@ jobs:
           organization: soloquy
           workspace: soloquy-backend
           configuration_version: ${{ steps.upload-config.outputs.configuration_version_id }}
-          variables: |
-            image_tag=${{ github.sha }}
         env:
           TF_API_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
+          TF_VAR_image_tag: '"${{ github.sha }}"'
 
       - name: Apply Terraform run
         uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.3.2
