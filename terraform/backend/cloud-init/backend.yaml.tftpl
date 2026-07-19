@@ -1,0 +1,54 @@
+#cloud-config
+# Soloquy backend — first-boot provisioning.
+# Installs Docker, configures the OCIR credential helper for Instance Principal
+# auth (no static token), and runs the pushed image as a systemd unit that
+# retries on failure (IAM-policy propagation to the new dynamic-group member can
+# lag by a few minutes after the instance is replaced).
+
+write_files:
+  - path: /root/.docker/config.json
+    owner: root:root
+    permissions: "0600"
+    content: |
+      {
+        "credHelpers": {
+          "${registry_host}": "ocir"
+        }
+      }
+
+  - path: /etc/systemd/system/soloquy-backend.service
+    owner: root:root
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Soloquy backend container
+      After=docker.service network-online.target
+      Requires=docker.service
+
+      [Service]
+      Type=simple
+      Restart=on-failure
+      RestartSec=10
+      ExecStartPre=-/usr/bin/docker rm -f soloquy-backend
+      ExecStartPre=/usr/bin/docker pull ${registry_host}/${oci_namespace}/soloquybackend:${image_tag}
+      ExecStart=/usr/bin/docker run --rm --name soloquy-backend -p 8080:8080 ${registry_host}/${oci_namespace}/soloquybackend:${image_tag}
+      ExecStop=-/usr/bin/docker stop soloquy-backend
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  - dnf -y install git dnf-plugins-core
+  - dnf -y remove podman-docker || true
+  - dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  - dnf -y install docker-ce docker-ce-cli containerd.io
+  - systemctl enable --now docker
+  - dnf -y install oraclelinux-developer-release-el9
+  - dnf -y install python39-oci-cli golang
+  - git clone https://github.com/jan-g/ip-credential.git /tmp/ip-credential
+  - cd /tmp/ip-credential && git checkout e2411c3c86c633537a8f10113c96c99c2fc71e5e && test "$(git rev-parse HEAD)" = "e2411c3c86c633537a8f10113c96c99c2fc71e5e" || exit 1
+  - cd /tmp/ip-credential && go mod vendor && go build docker-credential-ocir.go
+  - install -m 0755 /tmp/ip-credential/docker-credential-ocir /usr/local/bin/docker-credential-ocir
+  - rm -rf /tmp/ip-credential
+  - systemctl daemon-reload
+  - systemctl enable --now soloquy-backend.service
