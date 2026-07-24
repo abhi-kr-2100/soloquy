@@ -44,19 +44,14 @@ resource "oci_core_security_list" "this" {
     }
   }
 
-  # Temporary SSH ingress for the Phase 5 recovery path. Present only when
-  # the debug SSH path is enabled; otherwise the rule is omitted entirely.
-  dynamic "ingress_security_rules" {
-    for_each = var.enable_debug_ssh ? [1] : []
+  ingress_security_rules {
+    protocol    = "6" # TCP
+    source      = "10.0.0.0/24"
+    description = "Allow SSH from within subnet (including OCI Bastion)"
 
-    content {
-      protocol = "6" # TCP
-      source   = var.debug_ssh_source_cidr
-
-      tcp_options {
-        min = 22
-        max = 22
-      }
+    tcp_options {
+      min = 22
+      max = 22
     }
   }
 
