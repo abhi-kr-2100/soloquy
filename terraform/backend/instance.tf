@@ -5,7 +5,6 @@ module "soloquy_backend_instance" {
   compartment_ocid = oci_identity_compartment.soloquy_backend.id
   subnet_ocids     = [oci_core_subnet.this.id]
   source_ocid      = local.ol9_x86_64_image_ocid
-  ssh_public_keys  = var.enable_debug_ssh ? var.ssh_public_key : ""
 
   ad_number             = 1
   shape                 = "VM.Standard.E2.1.Micro"
@@ -14,6 +13,10 @@ module "soloquy_backend_instance" {
   assign_public_ip       = false
   public_ip              = "RESERVED"
   public_ip_display_name = "soloquy-backend-public-ip"
+
+  cloud_agent_plugins = {
+    bastion = "ENABLED"
+  }
 
   user_data = base64encode(templatefile("${path.module}/cloud-init/backend.yaml.tftpl", {
     registry_host = local.ocir_registry_host
@@ -35,4 +38,14 @@ output "instance_public_ip" {
 output "instance_public_ip_ocid" {
   description = "OCID of the reserved public IP resource for the soloquy-backend instance."
   value       = module.soloquy_backend_instance.public_ip_all_attributes[0].id
+}
+
+output "bastion_id" {
+  description = "OCID of the OCI Bastion service."
+  value       = oci_bastion_bastion.this.id
+}
+
+output "instance_private_ip" {
+  description = "Private IP address of the soloquy-backend instance (needed for Bastion session creation)."
+  value       = module.soloquy_backend_instance.private_ip[0]
 }
