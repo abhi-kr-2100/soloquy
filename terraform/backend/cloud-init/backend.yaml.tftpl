@@ -16,6 +16,35 @@ write_files:
         }
       }
 
+  - path: /root/setup-swap.sh
+    owner: root:root
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      set -euo pipefail
+
+      SWAPFILE=/swapfile
+      SWAP_OPTS="none swap sw 0 0"
+
+      is_valid_swap() {
+        [ -f "$SWAPFILE" ] && blkid "$SWAPFILE" | grep -q 'TYPE="swap"'
+      }
+
+      if ! is_valid_swap; then
+        rm -f "$SWAPFILE"
+        fallocate -l 2G "$SWAPFILE"
+        chmod 600 "$SWAPFILE"
+        mkswap "$SWAPFILE"
+      fi
+
+      if ! grep -q "$SWAPFILE" /etc/fstab; then
+        echo "$SWAPFILE $SWAP_OPTS" >> /etc/fstab
+      fi
+
+      if ! swapon --show | grep -q "$SWAPFILE"; then
+        swapon "$SWAPFILE"
+      fi
+
   - path: /etc/systemd/system/soloquy-backend.service
     owner: root:root
     permissions: "0644"
@@ -38,6 +67,7 @@ write_files:
       WantedBy=multi-user.target
 
 runcmd:
+  - /root/setup-swap.sh
   - dnf -y install git dnf-plugins-core
   - dnf -y remove podman-docker || true
   - dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
