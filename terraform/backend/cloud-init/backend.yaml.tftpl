@@ -58,6 +58,7 @@ write_files:
       Type=simple
       Restart=on-failure
       RestartSec=10
+      Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       ExecStartPre=-/usr/bin/docker rm -f soloquy-backend
       ExecStartPre=/usr/bin/docker pull ${registry_host}/${oci_namespace}/soloquybackend:${image_tag}
       ExecStart=/usr/bin/docker run --rm --name soloquy-backend -p 8080:8080 ${registry_host}/${oci_namespace}/soloquybackend:${image_tag}
