@@ -26,18 +26,29 @@ write_files:
       SWAPFILE=/swapfile
       SWAP_OPTS="none swap sw 0 0"
 
+      # Disable and remove any pre-existing swap files (e.g. OCI default /.swapfile).
+      for old in $(swapon --show --noheadings --name); do
+        if [ "$old" != "$SWAPFILE" ]; then
+          if swapoff "$old" && [ -f "$old" ]; then
+            escaped=$(printf '%s\n' "$old" | sed 's/[^^]/[&]/g; s/\^/\\^/g')
+            sed -i "/^${escaped}[[:space:]]/d" /etc/fstab
+            rm -f "$old"
+          fi
+        fi
+      done
+
       is_valid_swap() {
         [ -f "$SWAPFILE" ] && blkid "$SWAPFILE" | grep -q 'TYPE="swap"'
       }
 
       if ! is_valid_swap; then
         rm -f "$SWAPFILE"
-        fallocate -l 2G "$SWAPFILE"
+        fallocate -l 4G "$SWAPFILE"
         chmod 600 "$SWAPFILE"
         mkswap "$SWAPFILE"
       fi
 
-      if ! grep -q "$SWAPFILE" /etc/fstab; then
+      if ! awk -v sw="$SWAPFILE" '$1 == sw {found=1} END {exit !found}' /etc/fstab; then
         echo "$SWAPFILE $SWAP_OPTS" >> /etc/fstab
       fi
 
@@ -69,13 +80,14 @@ write_files:
 
 runcmd:
   - /root/setup-swap.sh
-  - dnf -y install git dnf-plugins-core
+  - sleep 60
+  - dnf -y --setopt=install_weak_deps=False install git dnf-plugins-core
   - dnf -y remove podman-docker || true
   - dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-  - dnf -y install docker-ce docker-ce-cli containerd.io
+  - dnf -y --setopt=install_weak_deps=False install docker-ce docker-ce-cli containerd.io
   - systemctl enable --now docker
-  - dnf -y install oraclelinux-developer-release-el9
-  - dnf -y install python39-oci-cli golang
+  - dnf -y --setopt=install_weak_deps=False install oraclelinux-developer-release-el9
+  - dnf -y --setopt=install_weak_deps=False install python39-oci-cli golang
   - git clone https://github.com/jan-g/ip-credential.git /tmp/ip-credential
   - cd /tmp/ip-credential && git checkout e2411c3c86c633537a8f10113c96c99c2fc71e5e && test "$(git rev-parse HEAD)" = "e2411c3c86c633537a8f10113c96c99c2fc71e5e" || exit 1
   - cd /tmp/ip-credential && go mod vendor && go build docker-credential-ocir.go
