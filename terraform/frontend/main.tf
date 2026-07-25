@@ -20,7 +20,7 @@ resource "vercel_project" "soloquy_web_frontend" {
 resource "vercel_deployment" "soloquy_web_frontend" {
   project_id = vercel_project.soloquy_web_frontend.id
   production = true
-  ref        = "release"
+  ref        = var.ref
 
   environment = {
     API_URL = var.api_url
@@ -43,4 +43,9 @@ resource "vercel_project_environment_variable" "api_url" {
 variable "api_url" {
   type      = string
   sensitive = false
+}
+
+variable "ref" {
+  type        = string
+  description = "The git commit SHA to deploy"
 }
