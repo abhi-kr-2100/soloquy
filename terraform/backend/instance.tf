@@ -30,7 +30,7 @@ output "instance_id" {
 
 output "instance_public_ip" {
   description = "Reserved public IP address attached to the soloquy-backend instance."
-  value       = module.soloquy_backend_instance.public_ip[0]
+  value       = module.soloquy_backend_instance.public_ip_all_attributes[0].ip_address
 }
 
 output "instance_public_ip_ocid" {
