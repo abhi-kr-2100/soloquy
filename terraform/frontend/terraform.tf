@@ -13,7 +13,7 @@ terraform {
 
     workspaces {
       project = "soloquy"
-      name = "soloquy-frontend"
+      name    = "soloquy-frontend"
     }
   }
 }
