@@ -35,7 +35,7 @@ variable "private_key_pass_phrase" {
 
 variable "image_tag" {
   type        = string
-  description = "Tag of the soloquybackend image to deploy. Always supplied by the GitHub Action at run time as the GitHub commit SHA."
+  description = "Tag of the soloquybackend image to deploy. Always supplied by the GitHub Action at run time as the Nix store hash of the backend build."
 }
 
 variable "bastion_max_session_ttl_in_seconds" {
