@@ -9,6 +9,12 @@ resource "vercel_project" "soloquy_web_frontend" {
   }
 
   root_directory = "soloquy-web-frontend"
+
+  preview_deployments_disabled = true
+
+  git_provider_options = {
+    create_deployments = false
+  }
 }
 
 resource "vercel_deployment" "soloquy_web_frontend" {
