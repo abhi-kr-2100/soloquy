@@ -90,7 +90,7 @@ runcmd:
   - dnf -y --setopt=install_weak_deps=False install python39-oci-cli golang
   - git clone https://github.com/jan-g/ip-credential.git /tmp/ip-credential
   - cd /tmp/ip-credential && git checkout e2411c3c86c633537a8f10113c96c99c2fc71e5e && test "$(git rev-parse HEAD)" = "e2411c3c86c633537a8f10113c96c99c2fc71e5e" || exit 1
-  - cd /tmp/ip-credential && go mod vendor && go build docker-credential-ocir.go
+  - export GOPATH=/root/go && export GOMODCACHE=$GOPATH/pkg/mod && export GOCACHE=/root/.cache/go-build && mkdir -p $GOCACHE && cd /tmp/ip-credential && go mod vendor && go build docker-credential-ocir.go
   - install -m 0755 /tmp/ip-credential/docker-credential-ocir /usr/local/bin/docker-credential-ocir
   - rm -rf /tmp/ip-credential
   - systemctl daemon-reload
